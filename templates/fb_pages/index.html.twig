@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <div class="show-article-container p-3 mt-4">
+            <div class = "enter-fb-page-title"> Enter Facebook Page Alias</div>
+            <form class="form-inline my-2 my-lg-0 search-form" action="{{ path('app_check_posts') }}">
+                <input class="search-input form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-info my-2 my-sm-0 btn-search" type="submit">Search</button>
+            </form>
+        </div>
+        <div id="jsGrid"></div>
+    </div>
+{% endblock %}

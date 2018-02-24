@@ -25,3 +25,10 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # Create an alias, so that - by default - if you type-hint SiteUpdateManager,
+    # the site_update_manager.superadmin will be used
+    App\Service\FbPageRequester:
+        arguments :
+            $config : {'app_id' : '46985070768', 'app_secret' : '6ff0b634a8eb173369a54afab53c386d'}
+
