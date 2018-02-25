@@ -1,6 +1,6 @@
 # symfony-facebooker-app
 
-###To install : 
+### To install : 
 
  - git clone https://github.com/flaviy/symfony-facebooker-app.git
  - cd symfony-facebooker-app/
