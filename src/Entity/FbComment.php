@@ -25,7 +25,7 @@ class FbComment
     private $fbFeedId;
 
     /**
-     * @ManyToOne(targetEntity="FbFeed")
+     * @ManyToOne(targetEntity="FbFeed", inversedBy="fbComments")
      * @JoinColumn(name="fb_feed_id", referencedColumnName="id")
      */
     private $fbFeed;

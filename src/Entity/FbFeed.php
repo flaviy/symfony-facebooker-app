@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\FbFeedRepository")
@@ -172,5 +173,13 @@ class FbFeed
     public function setCreatedTime($createdTime): void
     {
         $this->createdTime = $createdTime;
+    }
+
+    /**
+     * @return Collection|FbComment[]
+     */
+    public function getFbComments()
+    {
+        return $this->fbComments;
     }
 }

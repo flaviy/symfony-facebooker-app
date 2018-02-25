@@ -22,15 +22,32 @@ class FbPageRequester
 
     /**
      * @param $name
+     * @return null
+     */
+    public function getFbPageId($name)
+    {
+        try {
+            $pageInfo = $this->facebook
+                ->get('/' . $name, $this->fbAccessToken)
+                ->getDecodedBody();
+            return $pageInfo['id'] ? $pageInfo['id'] : null;
+        } catch (FacebookSDKException $ex) {
+            $this->logger->debug($ex->getMessage(), $ex->getTrace());
+           return null;
+        }
+    }
+
+    /**
+     * @param $pageId
      * @return array
      * @throws ServiceMethodCallException
      */
-    public function getFbPageInfo($name)
+    public function getFbPageFeedAndComments($pageId)
     {
         $result = [];
 
         try {
-            $feeds = $this->facebook->get('/' . $name . '/feed?limit=100&fields=created_time,from,id,message',
+            $feeds = $this->facebook->get('/' . $pageId . '/feed?limit=100&fields=created_time,from,id,message',
                 $this->fbAccessToken)
                 ->getDecodedBody();
             if (!empty($feeds['data'])) {
@@ -39,7 +56,7 @@ class FbPageRequester
                     $result[] = [
                         'created_time' => new \DateTime($feed['created_time']),
                         'text' => isset($feed['message']) ? $feed['message'] : '',
-                        'id' => $feed['id'],
+                        'id' => $pageId,
                         'author' => isset($feed['from']['name']) ? $feed['from']['name'] : '',
                         'comments' => $comments['comments'],
                         'count_comments' => $comments['total_count'],
@@ -62,7 +79,7 @@ class FbPageRequester
      */
     public function getFbComments($feedId)
     {
-        $comments = $this->facebook->get('/' . $feedId . '/comments?summary=true&order=reverse_chronological&fields=created_time,from,id,message, first_name',
+        $comments = $this->facebook->get('/' . $feedId . '/comments?summary=true&order=reverse_chronological&fields=created_time,from,id,message',
             $this->fbAccessToken)->getDecodedBody();
 
         $return = [

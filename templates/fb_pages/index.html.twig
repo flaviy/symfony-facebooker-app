@@ -6,8 +6,11 @@
             <div class = "enter-fb-page-title"> Enter Facebook Page Alias</div>
             <form class="form-inline my-2 my-lg-0 search-form" action="{{ path('app_check_posts') }}">
                 <input class="search-input form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                <button class="btn btn-info my-2 my-sm-0 btn-search" type="submit">Search</button>
+                <button class="btn btn-info my-2 my-sm-0 btn-search" type="submit">
+                    Search <i class="fa fa-circle-o-notch fa-spin invisible" id="search-button-i"></i>
+                </button>
             </form>
+            <div id="error"></div>
         </div>
         <div id="jsGrid"></div>
     </div>

@@ -30,7 +30,16 @@ html {height:100%}
 
 /* Search form */
 input.search-input {
-    width:90%!important;
+    width:80%!important;
+}
+button.btn-search i{
+    position:absolute;
+    right:10px;
+    top:10px;
+}
+button.btn-search {
+    position:relative;
+    width:18%
 }
 div.enter-fb-page-title{
     text-align: center;

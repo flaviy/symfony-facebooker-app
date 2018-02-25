@@ -2,90 +2,111 @@
 
 namespace App\Controller;
 
-use App\Entity\FbComment;
-use App\Entity\FbFeed;
-use App\Service\FbPageRequester;
+use App\Exception\ServiceMethodCallException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use App\Entity\FbComment;
+use App\Entity\FbFeed;
+use App\Service\FbPageRequester;
 
 class FbPagesController extends AbstractController
 {
     /**
      * @Route("/", name = "app_home")
-     * @param FbPageRequester $fbPageRequester
-     * @return Response
-     * @throws \App\Exception\ServiceMethodCallException
-     */
-    public function index(FbPageRequester $fbPageRequester)
-    {
-        $pageInfo = $fbPageRequester->getFbPageInfo('kidsdoit');
-        if (!empty($pageInfo)) {
-            $em = $this->getDoctrine()->getManager();
-            foreach ($pageInfo as $feed) {
-                $fbFeed = new FbFeed();
-                $fbFeed->setAuthor($feed['author']);
-                $fbFeed->setFbPageId($feed['id']);
-                $fbFeed->setCountComments($feed['count_comments']);
-                $fbFeed->setCountLikes($feed['count_likes']);
-                $fbFeed->setCreatedTime($feed['created_time']);
-                $fbFeed->setText($feed['text']);
-                $em->persist($fbFeed);
-
-                if(!empty($feed['comments'])) {
-                    foreach($feed['comments'] as $comment) {
-                        $fbComment = new FbComment();
-                        $fbComment->setFbFeed($fbFeed);
-                        $fbComment->setCreatedTime($feed['created_time']);
-                        $fbComment->setMessage($comment['message']);
-                        $em->persist($fbComment);
-                    }
-                }
-            }
-            $em->flush();
-            $em->clear();
-            return $this->render('fb_pages/index.html.twig');
-        }
-        //return new Response('Hello! This is my first Symfony 4 page!');
-    }
-
-    /**
-     * @Route("/check-page/{name}")
-     * @param $name
      * @return Response
      */
-    public function check($name)
+    public function index()
     {
-        $posts = [
-            'I ate a normal rock once. It did NOT taste like bacon!',
-            'Woohoo! I\'m going on an all-asteroid diet!',
-            'I like bacon too! Buy some from my site! bakinsomebacon.com',
-        ];
-        return $this->render('fb_pages/check.html.twig', [
-            'name' => ucwords(str_replace('-', ' ', $name)),
-            'posts' => $posts
-        ]);
+        return $this->render('fb_pages/index.html.twig');
     }
 
     /**
      * @Route("check-fb-page-posts", name="app_check_posts", methods={"POST"})
+     * @param FbPageRequester $fbPageRequester
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function requestFbPagePosts()
+    public function requestFbPagePosts(FbPageRequester $fbPageRequester, Request $request)
     {
-        return new JsonResponse([
-            [
-                'post' => 'Post body',
-                'author' => 'Author 1',
-                'date' => '12.12.2016',
-                'count_likes' => 25
-            ],
-            [
-                'post' => 'Post body 1',
-                'author' => 'Author 2',
-                'date' => '12.12.2017',
-                'count_likes' => 12
-            ],
-        ]);
+        $inputValue = $request->get('inputValue');
+        if(!$inputValue) {
+            return $this->addJsonError('Empty Input Value');
+        }
+
+        $pageId = $fbPageRequester->getFbPageId($inputValue);
+        if(!$pageId) {
+            return $this->addJsonError('Fb page not found');
+        }
+        $repository = $this->getDoctrine()->getRepository(FbFeed::class);
+        $feeds = $repository->findBy(['fbPageId' => $pageId]);
+
+        if(empty($feeds)) {
+            try {
+                $feedsWithComments = $fbPageRequester->getFbPageFeedAndComments($pageId);
+            } catch (ServiceMethodCallException $ex) {
+                return $this->addJsonError($ex->getMessage());
+            }
+            if (!empty($feedsWithComments)) {
+                $this->saveFeedsWithComments($feedsWithComments);
+                $feeds = $repository->findBy(['fbPageId' => $pageId]);
+            }
+        }
+        $response = [];
+        if(!empty($feeds)) {
+            foreach($feeds as $feed) {
+                $response[] = [
+                    'author' => $feed->getAuthor(),
+                    'text' => $feed->getText(),
+                    'count_likes' => $feed->getCountLikes(),
+                    'created_time' => $feed->getCreatedTime()->format('Y-m-d H:i'),
+                    'count_comments' => $feed->getCountComments(),
+                    //'comments' => $feed->getFbComments()->getValues()
+                ];
+            }
+        }
+
+        return new JsonResponse($response);
+    }
+
+    /**
+     * @param $error
+     * @return JsonResponse
+     */
+    protected function addJsonError($error)
+    {
+        return new JsonResponse(['error' => $error]);
+    }
+
+    /**
+     * @param $feedsWithComments
+     */
+    protected function saveFeedsWithComments($feedsWithComments): void
+    {
+        $em = $this->getDoctrine()->getManager();
+        foreach ($feedsWithComments as $feed) {
+            $fbFeed = new FbFeed();
+            $fbFeed->setAuthor($feed['author']);
+            $fbFeed->setFbPageId($feed['id']);
+            $fbFeed->setCountComments($feed['count_comments']);
+            $fbFeed->setCountLikes($feed['count_likes']);
+            $fbFeed->setCreatedTime($feed['created_time']);
+            $fbFeed->setText($feed['text']);
+            $em->persist($fbFeed);
+
+            if (!empty($feed['comments'])) {
+                foreach ($feed['comments'] as $comment) {
+                    $fbComment = new FbComment();
+                    $fbComment->setFbFeed($fbFeed);
+                    $fbComment->setCreatedTime($feed['created_time']);
+                    $fbComment->setMessage($comment['message']);
+                    $em->persist($fbComment);
+                }
+            }
+        }
+        $em->flush();
+        $em->clear();
     }
 }
